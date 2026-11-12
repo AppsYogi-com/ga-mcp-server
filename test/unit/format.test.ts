@@ -46,6 +46,24 @@ describe('parseReport', () => {
         expect(parseReport({})).toEqual({ dimensions: [], metrics: [], rows: [], totals: {}, rowCount: 0 });
     });
 
+    it('reports zero totals when GA returns no rows (GA omits totals then)', () => {
+        const parsed = parseReport({ metricHeaders: [{ name: 'sessions', type: 'TYPE_INTEGER' }], rows: [] });
+        expect(parsed.totals).toEqual({ total: { sessions: 0 } });
+    });
+
+    it('ignores duplicated headers (seen in GA4 funnel tables)', () => {
+        const parsed = parseReport({
+            dimensionHeaders: [{ name: 'funnelStepName' }, { name: 'deviceCategory' }],
+            metricHeaders: [
+                { name: 'activeUsers', type: 'TYPE_INTEGER' }, { name: 'funnelStepAbandonments', type: 'TYPE_INTEGER' },
+                { name: 'activeUsers', type: 'TYPE_INTEGER' }, { name: 'funnelStepAbandonments', type: 'TYPE_INTEGER' },
+            ],
+            rows: [{ dimensionValues: [{ value: '1. Start' }, { value: 'RESERVED_TOTAL' }], metricValues: [{ value: '22472' }, { value: '100' }] }],
+        });
+        expect(parsed.metrics.map((m) => m.name)).toEqual(['activeUsers', 'funnelStepAbandonments']);
+        expect(parsed.rows[0]).toEqual({ funnelStepName: '1. Start', deviceCategory: 'RESERVED_TOTAL', activeUsers: 22472, funnelStepAbandonments: 100 });
+    });
+
     it.each([
         ['12.6', 'TYPE_INTEGER', 13],
         ['1.23456', 'TYPE_FLOAT', 1.2346],

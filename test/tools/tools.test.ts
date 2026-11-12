@@ -89,12 +89,16 @@ function fakeClient(requests: { method: string; propertyId: string; request: any
             { apiName: 'sessions', uiName: 'Sessions', description: 'Sessions', category: 'Session', kind: 'metric', custom: false },
         ],
         checkCompatibility: async () => ({ dimensions: ['pagePath'], metrics: ['sessions'] }),
-        runFunnelReport: async () => ({
-            funnelTable: gaResponse(['funnelStepName'], ['activeUsers', 'funnelStepCompletionRate'], [
+        runFunnelReport: async (id, request) => {
+            requests.push({ method: 'runFunnelReport', propertyId: id, request });
+            const table = gaResponse(['funnelStepName'], ['activeUsers', 'funnelStepCompletionRate'], [
                 { funnelStepName: '1. Landing', activeUsers: 100, funnelStepCompletionRate: 0.4 },
                 { funnelStepName: '2. Sign-up', activeUsers: 40, funnelStepCompletionRate: 0 },
-            ]),
-        }),
+            ]);
+            // Real GA4 funnel tables repeat every metric header.
+            table.metricHeaders = [...table.metricHeaders!, ...table.metricHeaders!];
+            return { funnelTable: table };
+        },
     };
 }
 
@@ -220,14 +224,28 @@ describe('report tools', () => {
         expect(result.json.rows).toEqual([{ unifiedScreenName: 'Home', activeUsers: 3 }]);
     });
 
-    it('builds funnel steps from events and filters', async () => {
-        const mcp = await connect(fakeClient(), '111');
+    it('builds funnel steps from events and filters, mapping pagePath to a funnel field', async () => {
+        const requests: any[] = [];
+        const mcp = await connect(fakeClient(requests), '111');
         const result = await call(mcp, 'ga_run_funnel_report', {
             steps: [{ name: 'Landing', filters: ['pagePath==/'] }, { name: 'Sign-up', event: 'sign_up' }],
         });
-        expect(result.json.summary).toContain('100 users at "1. Landing"');
-        expect(result.json.summary).toContain('40%');
+        expect(result.json.summary).toContain('1. Landing 100 → 2. Sign-up 40 (40% overall)');
+        expect(result.json.steps).toEqual([{ step: '1. Landing', active_users: 100 }, { step: '2. Sign-up', active_users: 40 }]);
         expect(result.json.warnings[0]).toContain('v1alpha');
+        expect(result.json.warnings.some((w: string) => w.includes('unifiedPagePathScreen'))).toBe(true);
+        const steps = requests.find((r) => r.method === 'runFunnelReport').request.funnel.steps;
+        expect(steps[0].filterExpression.funnelFieldFilter.fieldName).toBe('unifiedPagePathScreen');
+        expect(steps[1].filterExpression).toEqual({ funnelEventFilter: { eventName: 'sign_up' } });
+    });
+
+    it('rejects landingPage in funnel steps with a suggestion', async () => {
+        const mcp = await connect(fakeClient(), '111');
+        const result = await call(mcp, 'ga_run_funnel_report', {
+            steps: [{ name: 'Landing', filters: ['landingPage==/'] }, { name: 'Sign-up', event: 'sign_up' }],
+        });
+        expect(result.isError).toBe(true);
+        expect(result.text).toContain("can't be used in funnel steps");
     });
 });
 

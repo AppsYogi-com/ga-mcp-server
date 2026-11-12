@@ -70,10 +70,20 @@ function parseRow(row: GaRow, dimensions: string[], metrics: { name: string; typ
     return out;
 }
 
+/**
+ * Header names, keeping only the first occurrence of each. GA4 funnel tables have been seen to
+ * repeat every metric header (8 headers for 4 values); without this, the empty duplicates would
+ * overwrite the real values.
+ */
+function firstOccurrences<T extends { name: string }>(headers: T[]): T[] {
+    const seen = new Set<string>();
+    return headers.filter((h) => (seen.has(h.name) ? false : (seen.add(h.name), true)));
+}
+
 /** Parse a GA4 report response into typed rows and totals. */
 export function parseReport(response: GaReportResponse): ParsedReport {
-    const dimensions = (response.dimensionHeaders ?? []).map((h) => h.name ?? '');
-    const metrics = (response.metricHeaders ?? []).map((h) => ({ name: h.name ?? '', type: h.type ?? 'TYPE_FLOAT' }));
+    const dimensions = firstOccurrences((response.dimensionHeaders ?? []).map((h) => ({ name: h.name ?? '' }))).map((h) => h.name);
+    const metrics = firstOccurrences((response.metricHeaders ?? []).map((h) => ({ name: h.name ?? '', type: h.type ?? 'TYPE_FLOAT' })));
     const rows = (response.rows ?? []).map((r) => parseRow(r, dimensions, metrics));
     const totals: Record<string, Row> = {};
     const dateRangeIndex = dimensions.indexOf('dateRange');
@@ -83,6 +93,10 @@ export function parseReport(response: GaReportResponse): ParsedReport {
         const metricsOnly: Row = {};
         for (const m of metrics) metricsOnly[m.name] = parsed[m.name];
         totals[key] = metricsOnly;
+    }
+    // GA4 omits totals when there are no rows; report zeros instead of nothing.
+    if (rows.length === 0 && Object.keys(totals).length === 0 && metrics.length > 0) {
+        totals.total = Object.fromEntries(metrics.map((m) => [m.name, 0]));
     }
     return { dimensions, metrics, rows, totals, rowCount: response.rowCount ?? rows.length };
 }

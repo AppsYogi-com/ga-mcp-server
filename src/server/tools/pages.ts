@@ -206,6 +206,13 @@ export function registerPageTools(server: McpServer, ctx: ServerContext): void {
                 warnings: [
                     ...result.warnings,
                     ...(otherHosts.length ? [`Some URLs are on hosts this property doesn't track (${otherHosts.join(', ')}); query their own property.`] : []),
+                    ...(found < out.length
+                        ? [
+                              `${out.length - found} URL${out.length - found === 1 ? '' : 's'} had no GA4 data. Common causes: the URL redirects ` +
+                                  '(GA4 records the destination page, so check where it redirects), the page has no GA4 tag, or it had no ' +
+                                  `${mode === 'landing' ? 'sessions starting on it' : 'views'} in this period.`,
+                          ]
+                        : []),
                 ],
                 quota: result.quota,
                 extra: { matched: found, requested: out.length },

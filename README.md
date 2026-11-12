@@ -174,6 +174,13 @@ Recipes:
 - **Ahrefs → GA4:** top organic pages or backlink targets plus `ga_pages_by_url` show which ranking pages actually engage and convert.
 - **Site level:** `ga_list_properties` maps hosts to property ids, and `property` accepts a host directly.
 
+**Why a URL can come back `found: false`:**
+- **Redirects.** Search Console can keep reporting clicks on a URL that redirects. GA4 records the visit on the destination page instead. A redirected URL that still gets many search clicks is itself a finding: update internal links and the sitemap so Google consolidates onto the destination.
+- **The page has no GA4 tag.**
+- **No sessions or views** for that page in the period.
+
+In a live test on a real site, URLs matching **94% of Search Console clicks** joined directly. Nearly all of the clicks that didn't match went to two URLs that redirect.
+
 ## Filter syntax
 
 `filters` is a list of strings combined with **AND**; `||` inside one entry means **OR**.
