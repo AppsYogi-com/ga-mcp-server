@@ -1,0 +1,76 @@
+{
+    "name": "@appsyogi/ga-mcp-server",
+    "version": "0.1.0",
+    "description": "Google Analytics 4 MCP server: map properties to sites, joinable page data (url_key) for GSC, AdSense and Ahrefs, plus reports, realtime and funnels",
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "bin": {
+        "ga-mcp": "./dist/cli/index.js"
+    },
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsup",
+        "dev": "tsup --watch",
+        "typecheck": "tsc --noEmit",
+        "lint": "eslint src test",
+        "test": "vitest run",
+        "test:smoke": "vitest run --config vitest.smoke.config.ts",
+        "prepublishOnly": "npm run build"
+    },
+    "keywords": [
+        "mcp",
+        "google-analytics",
+        "ga4",
+        "analytics",
+        "model-context-protocol",
+        "claude",
+        "seo",
+        "search-console",
+        "adsense"
+    ],
+    "author": "SuperZero11",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/AppsYogi-com/ga-mcp-server.git"
+    },
+    "bugs": {
+        "url": "https://github.com/AppsYogi-com/ga-mcp-server/issues"
+    },
+    "homepage": "https://github.com/AppsYogi-com/ga-mcp-server#readme",
+    "engines": {
+        "node": ">=22.12.0"
+    },
+    "dependencies": {
+        "@googleapis/analyticsadmin": "^22.0.1",
+        "@googleapis/analyticsdata": "^10.1.1",
+        "@modelcontextprotocol/sdk": "^1.32.2",
+        "@napi-rs/keyring": "^2.1.2",
+        "commander": "^15.1.0",
+        "env-paths": "^4.0.0",
+        "google-auth-library": "^11.3.4",
+        "open": "^11.0.4",
+        "zod": "^4.6.7"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.39.5",
+        "@types/node": "^22.20.5",
+        "eslint": "^9.39.5",
+        "tsup": "^8.5.1",
+        "typescript": "~5.9.3",
+        "typescript-eslint": "^8.72.2",
+        "vitest": "^4.1.12"
+    },
+    "overrides": {
+        "minimatch": "^11.0.1"
+    }
+}
