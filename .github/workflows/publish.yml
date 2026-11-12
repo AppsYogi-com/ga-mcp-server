@@ -41,5 +41,19 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Check whether this version is already on npm
+        id: registry
+        # e.g. 0.1.0 was published by hand (a new package needs that before a trusted
+        # publisher can be added), or a re-run after a successful publish
+        run: |
+          PKG="$(node -p "require('./package.json').name")@$(node -p "require('./package.json').version")"
+          if npm view "$PKG" version >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::$PKG is already on npm, so there's nothing to publish."
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Stage publish to npm
+        if: steps.registry.outputs.published != 'true'
         run: npm stage publish --access public --provenance
